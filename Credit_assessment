@@ -1,0 +1,40 @@
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import classification_report, roc_auc_score
+
+# Load dataset
+data = pd.read_csv('credit_data.csv')
+
+# Preprocess data
+data.fillna(method='ffill', inplace=True)
+X = data.drop('default', axis=1)
+y = data['default']
+
+# Encode categorical variables
+categorical_features = X.select_dtypes(include=['object']).columns
+numerical_features = X.select_dtypes(include=['int64', 'float64']).columns
+
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', StandardScaler(), numerical_features),
+        ('cat', OneHotEncoder(), categorical_features)
+    ])
+
+# Create a pipeline
+pipeline = Pipeline(steps=[('preprocessor', preprocessor),
+                           ('classifier', LogisticRegression())])
+
+# Split data
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Train model
+pipeline.fit(X_train, y_train)
+
+# Evaluate model
+y_pred = pipeline.predict(X_test)
+print(classification_report(y_test, y_pred))
+print('AUC-ROC:', roc_auc_score(y_test, y_pred))
